@@ -7,6 +7,19 @@ auth = Blueprint('auth', __name__)
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        user = User.query.filter_by(email=email).first()
+        if user:
+            if check_password_hash(user.password, password):
+                flash('Logged in successfully!', category='success')
+                return redirect(url_for('views.home'))
+            else:
+                flash('Incorrect password', category='error')
+        else:
+            flash('email does not exist', category='error')
     return render_template("login.html")
 
 @auth.route('/logout')
@@ -17,13 +30,17 @@ def logout():
 def sign_up():
     if request.method == 'POST':
         email = request.form.get('email')
-        firstName = request.form.get('firstName')
+        first_name = request.form.get('firstName')
         password1 = request.form.get('password1')
         password2 = request.form.get('password2')
 
-        if len(email) < 4:
+        user = User.query.filter_by(email=email).first()
+
+        if user:
+            flash('Email already exists', category='error')
+        elif len(email) < 4:
             flash('Email must be greater than 3 characters', category='error')
-        elif len(firstName) < 2:
+        elif len(first_name) < 2:
             flash('First name must be greater than 1 character', category='error')
         elif password1 != password2:
             flash('Passwords do not match', category='error')
@@ -31,7 +48,7 @@ def sign_up():
             flash('Password must be greater than 6 characters', category='error')
         else:
             # add user to db
-            new_user = User(userEmail=email, userFirstName=firstName, userPassword=generate_password_hash(password1, method='scrypt'))
+            new_user = User(email=email, first_name=first_name, password=generate_password_hash(password1, method='scrypt'))
             db.session.add(new_user)
             db.session.commit()
             flash('Account created!', category='success')
